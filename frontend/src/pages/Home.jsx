@@ -1,50 +1,67 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/client";
 import PublicMemberCard from "../components/PublicMemberCard";
+import PinFilterTabs from "../components/PinFilterTabs";
 
 const Home = () => {
   const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPin, setSelectedPin] = useState("All");
+
+  const fetchMembers = async (pin = "All") => {
+    setLoading(true);
+    try {
+      const params = { page: 1, limit: 1000, orderBy: "pin", order: "asc" };
+      if (pin !== "All") params.pin = pin;
+      const res = await api.get("/api/members", { params });
+      setMembers(res.data?.data ?? []);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMembers = async () => {
-      const res = await api.get("/api/members", {
-        params: { page: 1, limit: 200, orderBy: "pin", order: "asc" },
-      });
-      setMembers(res.data.data || []);
-    };
-    fetchMembers();
-  }, []);
-
-  // Fix แค่ 49 คนแรก
-  const fixed = members.slice(0, 49);
-
-  // แบ่ง row ตามที่ต้องการ
-  const row1 = fixed.slice(0, 9); // 9
-  const row2 = fixed.slice(9, 20); // 11
-  const row3 = fixed.slice(20, 33); // 13
-  const row4 = fixed.slice(33, 49); // 16
-
-  const Row = ({ items, cols, className = "" }) => (
-    <div
-      className={`grid gap-4 ${className}`}
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-    >
-      {items.map((m) => (
-        <PublicMemberCard key={m._id} member={m} />
-      ))}
-    </div>
-  );
+    fetchMembers(selectedPin);
+  }, [selectedPin]);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-[100vw] overflow-x-hidden px-4 py-6">
-        <h1 className="text-2xl font-bold mb-6">Wall of Fame</h1>
+      <div className="mx-auto max-w-screen-2xl px-4 py-6">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold">Wall of Fame</h1>
+          <div className="text-sm text-gray-600">
+            {loading ? "กำลังโหลด..." : `ทั้งหมด: ${members.length} รายการ`}
+          </div>
+        </div>
 
-        <div className="space-y-6">
-          <Row items={row1} cols={9} />
-          <Row items={row2} cols={11} />
-          <Row items={row3} cols={13} />
-          <Row items={row4} cols={16} />
+        {/* Tabs */}
+        <div className="mb-6">
+          <PinFilterTabs value={selectedPin} onChange={setSelectedPin} />
+        </div>
+
+        {/* Responsive: 2 / 3 / 5 cards per row, centered last row */}
+        <div className="flex flex-wrap justify-center gap-6">
+          {loading ? (
+            Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-48 basis-1/2 sm:basis-1/3 xl:basis-1/5 max-w-[260px] w-full bg-white rounded shadow animate-pulse"
+              />
+            ))
+          ) : members.length === 0 ? (
+            <div className="w-full text-center text-gray-600 bg-white rounded border p-6">
+              ไม่พบข้อมูล
+            </div>
+          ) : (
+            members.map((m) => (
+              <div
+                key={m._id}
+                className="basis-1/2 sm:basis-1/3 xl:basis-1/5 max-w-[260px] w-full"
+              >
+                <PublicMemberCard member={m} />
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

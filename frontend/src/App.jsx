@@ -9,6 +9,8 @@ import RequireAuth from "./routes/RequireAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminMembers from "./pages/AdminMembers";
 import EditMember from "./pages/EditMember";
+import HomeTemplate from "./pages/HomeTemplate";
+
 
 function App() {
   return (
@@ -24,6 +26,7 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/members" element={<AdminMembers />} />
           <Route path="/admin/reorder" element={<AdminReorder />} />
+          <Route path="/admin/template" element={<HomeTemplate />} />
           <Route path="/admin/members/:id/edit" element={<EditMember />} />
         </Route>
 
