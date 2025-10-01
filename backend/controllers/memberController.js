@@ -1,20 +1,7 @@
 // controllers/memberController.js
 const Member = require('../models/Member');
+const { buildPinRankMap } = require('./pinController'); // 🔥 ใช้ map จาก DB
 
-const PIN_RANK = {
-    'Crown Diamond': 1,
-    'Black Diamond': 2,
-    'Blue Diamond': 3,
-    'Diamond': 4,
-    'Emerald': 5,
-    'Sapphire': 7,
-    'Ruby': 8,
-    'Pearl': 9,
-    'Platinum': 10,
-    'Gold': 11,
-    'Silver': 12,
-    'Bronze': 13,
-};
 // Helper
 const now = () => new Date();
 const getStatus = (endDate) => new Date(endDate) > now() ? 'Active' : 'Expired';
@@ -27,31 +14,26 @@ exports.getAllMembers = async (req, res) => {
         page = 1,
         limit = 10,
         order = 'asc',
-        orderBy = 'pin', // 🔥 default เรียงตาม pinRank + pinOrder
+        orderBy = 'pin',
     } = req.query;
 
     const match = {};
-
-    // status -> แปลงเป็นเงื่อนไข endPin
     if (status) {
         if (status.toLowerCase() === 'active') match.endPin = { $gt: now() };
         if (status.toLowerCase() === 'expired') match.endPin = { $lte: now() };
     }
-
     if (pin) match.pin = pin;
-
     if (q) {
         const regex = new RegExp(q, 'i');
         match.$or = [{ memberName: regex }, { memberId: regex }];
     }
 
-    // สร้าง branches สำหรับ $switch (map ชื่อ pin -> rank)
-    const pinBranches = Object.entries(PIN_RANK).map(([name, rank]) => ({
-        case: { $eq: ['$pin', name] },
-        then: rank,
+    // ===== สร้าง pinRank จาก DB =====
+    const pinRankMap = await buildPinRankMap();
+    const branches = Object.entries(pinRankMap).map(([name, rank]) => ({
+        case: { $eq: ['$pin', name] }, then: rank
     }));
 
-    // สร้าง sort object
     const dir = order.toLowerCase() === 'desc' ? -1 : 1;
     let sortStage;
     if (orderBy === 'pin') {
@@ -61,7 +43,6 @@ exports.getAllMembers = async (req, res) => {
     } else if (['createdAt', 'startPin', 'endPin'].includes(orderBy)) {
         sortStage = { [orderBy]: dir };
     } else {
-        // fallback
         sortStage = { pinRank: 1, pinOrder: 1, memberName: 1 };
     }
 
@@ -71,41 +52,30 @@ exports.getAllMembers = async (req, res) => {
 
     const pipeline = [
         { $match: match },
-        {
-            $addFields: {
-                pinRank: { $switch: { branches: pinBranches, default: 999 } },
-            },
-        },
+        { $addFields: { pinRank: { $switch: { branches, default: 999 } } } },
         { $sort: sortStage },
         {
             $facet: {
-                items: [
-                    { $skip: skip },
-                    { $limit: limitNum },
-                ],
+                items: [{ $skip: skip }, { $limit: limitNum }],
                 total: [{ $count: 'count' }],
-            },
-        },
+            }
+        }
     ];
 
     const result = await Member.aggregate(pipeline);
     const items = result[0]?.items || [];
     const total = result[0]?.total?.[0]?.count || 0;
 
-    // ใส่ status runtime
     const data = items.map((m) => ({ ...m, status: getStatus(m.endPin) }));
 
     res.json({
         data,
         pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            totalPages: Math.ceil(total / limitNum),
+            page: pageNum, limit: limitNum,
+            total, totalPages: Math.ceil(total / limitNum),
         },
     });
 };
-
 
 exports.getMemberById = async (req, res) => {
     const member = await Member.findById(req.params.id);

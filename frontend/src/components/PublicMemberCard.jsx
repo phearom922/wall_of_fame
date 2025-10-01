@@ -1,8 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import usePinMap from "../hooks/usePinMap";
 
 const PublicMemberCard = ({ member }) => {
   const navigate = useNavigate();
+  const pinMap = usePinMap();
+  const pinMeta = pinMap[member.pin] || {};
+
   return (
     <div
       onClick={() => navigate(`/member/${member._id}`)}
@@ -12,20 +16,39 @@ const PublicMemberCard = ({ member }) => {
         <img
           src={member.imageUrl}
           alt={member.memberName}
-          className="w-full h-32 object-cover rounded"
+          className="w-full h-68 object-cover rounded"
         />
       )}
-      <div className="flex-1 mt-2">
-        <h2 className="text-sm font-semibold truncate">{member.memberName}</h2>
-        <p className="text-xs text-gray-600 truncate">Pin: {member.pin}</p>
+
+      <div className="mt-2 flex justify-between items-center border-t border-gray-200">
+        <div>
+          <div className="flex items-center gap-2 mt-2">
+            <h2 className="text-sm font-semibold truncate">
+              {member.memberName}
+            </h2>
+          </div>
+
+          <p className="text-xs text-gray-600 truncate"> {member.pin}</p>
+
+          <p
+            className={`text-xs mt-1 font-bold ${
+              member.status === "Active" ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {member.status}
+          </p>
+        </div>
+
+        <div>
+          {pinMeta.logoUrl ? (
+            <img
+              src={pinMeta.logoUrl}
+              alt={member.pin}
+              className="h-12 w-12 object-contain"
+            />
+          ) : null}
+        </div>
       </div>
-      <p
-        className={`text-xs mt-1 font-bold ${
-          member.status === "Active" ? "text-green-600" : "text-red-600"
-        }`}
-      >
-        {member.status}
-      </p>
     </div>
   );
 };

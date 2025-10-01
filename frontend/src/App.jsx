@@ -10,7 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminMembers from "./pages/AdminMembers";
 import EditMember from "./pages/EditMember";
 import HomeTemplate from "./pages/HomeTemplate";
-
+import AdminPins from "./pages/AdminPins";
 
 function App() {
   return (
@@ -28,6 +28,7 @@ function App() {
           <Route path="/admin/reorder" element={<AdminReorder />} />
           <Route path="/admin/template" element={<HomeTemplate />} />
           <Route path="/admin/members/:id/edit" element={<EditMember />} />
+          <Route path="/admin/pins" element={<AdminPins />} />
         </Route>
 
         <Route path="*" element={<Home />} />

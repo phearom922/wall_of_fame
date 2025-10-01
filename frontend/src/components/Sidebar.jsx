@@ -27,6 +27,9 @@ const Sidebar = () => {
           <NavLink to="/admin/reorder" className={linkClass}>
             Reorder
           </NavLink>
+          <NavLink to="/admin/pins" className={linkClass}>
+            Pins
+          </NavLink>
           <NavLink to="/admin/template" className={linkClass}>
             Template
           </NavLink>

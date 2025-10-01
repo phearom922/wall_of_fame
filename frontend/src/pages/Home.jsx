@@ -27,8 +27,8 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-screen-2xl px-4 py-6">
+        <h1 className="text-7xl text-center font-bold">Wall of Fame</h1>
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold">Wall of Fame</h1>
           <div className="text-sm text-gray-600">
             {loading ? "กำลังโหลด..." : `ทั้งหมด: ${members.length} รายการ`}
           </div>

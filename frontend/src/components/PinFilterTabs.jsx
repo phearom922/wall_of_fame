@@ -1,8 +1,18 @@
-import React from "react";
-import { PIN_OPTIONS } from "../constants/pins";
+import React, { useEffect, useState } from "react";
+import api from "../api/client";
 
 const PinFilterTabs = ({ value, onChange }) => {
-  const tabs = ["All", ...PIN_OPTIONS];
+  const [pins, setPins] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const res = await api.get("/api/pins");
+      setPins(res.data || []);
+    };
+    load();
+  }, []);
+
+  const tabs = ["All", ...pins.map((p) => p.name)];
 
   return (
     <div className="w-full overflow-x-auto">
