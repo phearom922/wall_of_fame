@@ -23,6 +23,7 @@ const memberSchema = new mongoose.Schema({
     startPin: { type: Date, required: true },
     endPin: { type: Date, required: true },
     imageUrl: { type: String },
+    enabled: { type: Boolean, default: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Member', memberSchema);

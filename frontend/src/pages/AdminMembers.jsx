@@ -52,17 +52,24 @@ const AdminMembers = () => {
   const load = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await api.get("/api/members", {
-        params: {
-          page,
-          limit: pageInfo.limit,
-          q: filters.q || undefined,
-          status: filters.status || undefined,
-          pin: filters.pin || undefined,
-          orderBy: filters.orderBy || "pin",
-          order: filters.order || "asc",
-        },
-      });
+      // Format parameters
+      const params = {
+        page: page,
+        limit: pageInfo.limit,
+        orderBy: filters.orderBy || "pin",
+        order: filters.order || "asc",
+      };
+
+      // Add optional filters only if they have values
+      if (filters.q?.trim()) params.q = filters.q.trim();
+      if (filters.status) params.status = filters.status.toLowerCase();
+      if (filters.pin) params.pin = filters.pin;
+
+      console.log("Fetching members with params:", params);
+
+      const res = await api.get("/api/members", { params });
+      console.log("API Response:", res.data);
+
       setRows(res.data.data || []);
       setPageInfo(
         res.data.pagination || {
@@ -93,6 +100,15 @@ const AdminMembers = () => {
     await load(isLastItemOnPage ? pageInfo.page - 1 : pageInfo.page);
   };
 
+  // const toggleEnable = async (id) => {
+  //   try {
+  //     await api.put(`/api/members/${id}/toggle`);
+  //     await load(pageInfo.page); // รีโหลดข้อมูลหลังจาก toggle
+  //   } catch (error) {
+  //     console.error("Failed to toggle member status:", error);
+  //   }
+  // };
+
   const handleCreate = async (formData) => {
     try {
       setErrCreate("");
@@ -118,6 +134,22 @@ const AdminMembers = () => {
       { headers: { "Content-Type": "application/json" } }
     );
     await load(pageInfo.page);
+  };
+
+  const toggleEnable = async (memberId) => {
+    try {
+      const res = await api.put(`/api/members/${memberId}/toggle`);
+      const updated = res.data.member;
+
+      // อัปเดต state rows แบบ realtime
+      setRows((prev) =>
+        prev.map((m) =>
+          m._id === memberId ? { ...m, enabled: updated.enabled } : m
+        )
+      );
+    } catch (err) {
+      console.error("Toggle failed", err);
+    }
   };
 
   return (
@@ -228,6 +260,7 @@ const AdminMembers = () => {
                 <th className="text-left p-3">Start</th>
                 <th className="text-left p-3">End</th>
                 <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Card Status</th>
                 <th className="text-right p-3">Actions</th>
               </tr>
             </thead>
@@ -278,6 +311,24 @@ const AdminMembers = () => {
                       {r.endPin ? new Date(r.endPin).toLocaleDateString() : "-"}
                     </td>
                     <td className="p-3">{statusBadge(r.status)}</td>
+                    <td className="p-3 text-center">
+                      <label className="inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={r.enabled}
+                          onChange={() => toggleEnable(r._id)}
+                          className="sr-only peer"
+                        />
+                        <div
+                          className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300
+                 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
+                 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5
+                 after:transition-all peer-checked:bg-blue-600"
+                        ></div>
+                      </label>
+                    </td>
+
                     <td className="p-3 text-right">
                       <div className="flex gap-2 justify-end">
                         <button

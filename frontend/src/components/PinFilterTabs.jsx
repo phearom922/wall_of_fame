@@ -23,11 +23,11 @@ const PinFilterTabs = ({ value, onChange }) => {
             <button
               key={pin}
               onClick={() => onChange(pin)}
-              className={`whitespace-nowrap px-4 py-2 rounded border text-sm
+              className={`whitespace-nowrap px-4 py-3 rounded-lg border font-semibold
                 ${
                   active
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
+                    ? "bg-orange-600 text-white border-orange-600"
+                    : "bg-white text-gray-700 hover:bg-gray-50 border-gray-200"
                 }`}
             >
               {pin}

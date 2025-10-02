@@ -11,6 +11,7 @@ exports.getAllMembers = async (req, res) => {
         status,
         pin,
         q,
+        enabled,
         page = 1,
         limit = 10,
         order = 'asc',
@@ -23,6 +24,7 @@ exports.getAllMembers = async (req, res) => {
         if (status.toLowerCase() === 'expired') match.endPin = { $lte: now() };
     }
     if (pin) match.pin = pin;
+    if (enabled !== undefined) match.enabled = enabled === 'true';
     if (q) {
         const regex = new RegExp(q, 'i');
         match.$or = [{ memberName: regex }, { memberId: regex }];
@@ -150,4 +152,14 @@ exports.bulkReorder = async (req, res) => {
 
     await Member.bulkWrite(ops);
     res.json({ message: 'Reordered', updated: items.length });
+};
+
+exports.toggleMember = async (req, res) => {
+    const member = await Member.findById(req.params.id);
+    if (!member) return res.status(404).json({ message: 'Member not found' });
+
+    member.enabled = !member.enabled;
+    await member.save();
+
+    res.json({ message: `Member ${member.enabled ? 'enabled' : 'disabled'}`, member });
 };

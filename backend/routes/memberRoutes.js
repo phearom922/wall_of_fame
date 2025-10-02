@@ -14,5 +14,7 @@ router.delete('/:id', verifyToken, controller.deleteMember);
 
 // 🔥 Bulk reorder within a pin
 router.put('/reorder/bulk', verifyToken, controller.bulkReorder);
+router.put('/:id/toggle', verifyToken, controller.toggleMember);
+
 
 module.exports = router;
