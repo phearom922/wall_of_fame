@@ -1,4 +1,24 @@
 @import "tailwindcss";
+
+html{
+  scrollbar-gutter: stable;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #fbfaf9;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #f56505;
+  border-radius: 100vh;
+}
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

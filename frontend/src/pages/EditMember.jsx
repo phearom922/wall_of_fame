@@ -30,7 +30,7 @@ const EditMember = () => {
       await api.put(`/api/members/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      navigate("/admin/dashboard");
+      navigate("/admin/members");
     } catch (e) {
       setErr(e?.response?.data?.message || "อัปเดตข้อมูลไม่สำเร็จ");
     } finally {
@@ -41,7 +41,7 @@ const EditMember = () => {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-6 bg-gray-100">
+      <main className="flex-1 p-6 bg-gray-100 ml-64">
         <h1 className="text-2xl font-bold mb-4">Edit Member</h1>
         {err && (
           <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

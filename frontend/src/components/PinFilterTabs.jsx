@@ -14,6 +14,8 @@ const PinFilterTabs = ({ value, onChange }) => {
 
   const tabs = ["All", ...pins.map((p) => p.name)];
 
+
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="flex gap-2 pb-2">

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/pages/AdminReorder.jsx
+import React, { useEffect, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -17,8 +18,8 @@ import Sidebar from "../components/Sidebar";
 import api from "../api/client";
 import { PIN_OPTIONS } from "../constants/pins";
 
-// Draggable card
-const Card = ({ item }) => {
+// ==== Draggable item (member row) ====
+const MemberRow = ({ item }) => {
   const {
     attributes,
     listeners,
@@ -27,102 +28,110 @@ const Card = ({ item }) => {
     transition,
     isDragging,
   } = useSortable({ id: item._id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...attributes}
       {...listeners}
-      className={`bg-white rounded shadow p-3 cursor-grab ${
-        isDragging ? "opacity-75" : ""
-      }`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm
+                  ${isDragging ? "opacity-75 ring-2 ring-blue-300" : ""}`}
     >
-      <div className="flex items-center gap-3">
-        {item.imageUrl ? (
-          <img
-            src={item.imageUrl}
-            alt={item.memberName}
-            className="h-10 w-10 object-cover rounded"
-          />
-        ) : (
-          <div className="h-10 w-10 bg-gray-200 rounded" />
-        )}
-        <div className="truncate">
-          <div className="font-semibold">{item.memberName}</div>
-          <div className="text-xs text-gray-500">ID: {item.memberId}</div>
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt={item.memberName}
+          className="h-10 w-10 rounded object-cover"
+        />
+      ) : (
+        <div className="h-10 w-10 rounded bg-slate-100" />
+      )}
+      <div className="min-w-0">
+        <div className="truncate font-medium text-slate-800">
+          {item.memberName}
         </div>
-        <div className="ml-auto text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
-          #{item.pinOrder ?? 0}
+        <div className="truncate text-xs text-slate-500">
+          ID: {item.memberId}
         </div>
       </div>
+      <span className="ms-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+        #{item.pinOrder ?? 0}
+      </span>
     </div>
   );
 };
 
-// Column per pin
-const PinColumn = ({ pin, items, onChangeOrder }) => {
+// ==== Pin card (1 การ์ด = 1 Pin) ====
+const PinCard = ({ pin, items, onReorder, onSave, saving }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
-
   const ids = items.map((i) => i._id);
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
+  const handleDragEnd = (e) => {
+    const { active, over } = e;
     if (!over || active.id === over.id) return;
-
     const oldIndex = ids.indexOf(active.id);
     const newIndex = ids.indexOf(over.id);
-    const newItems = arrayMove(items, oldIndex, newIndex);
-
-    // Reindex pinOrder as 1..n (หรือ 0..n ก็ได้ตามนโยบาย)
-    const normalized = newItems.map((it, idx) => ({
+    const reordered = arrayMove(items, oldIndex, newIndex).map((it, idx) => ({
       ...it,
       pinOrder: idx + 1,
     }));
-
-    onChangeOrder(pin, normalized);
+    onReorder(pin, reordered);
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 border">
-      <h3 className="font-bold mb-3">{pin}</h3>
+    <section className="break-inside-avoid mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-800">{pin}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+          {items.length} members
+        </span>
+      </div>
+
       <DndContext
-        collisionDetection={closestCenter}
         sensors={sensors}
+        collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={ids} strategy={rectSortingStrategy}>
           <div className="flex flex-col gap-2">
             {items.map((it) => (
-              <Card key={it._id} item={it} />
+              <MemberRow key={it._id} item={it} />
             ))}
           </div>
         </SortableContext>
       </DndContext>
-    </div>
+
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={() => onSave(pin)}
+          disabled={saving}
+          className={`rounded-lg px-3 py-1.5 text-sm text-white ${
+            saving ? "bg-slate-400" : "bg-blue-600 hover:bg-blue-700"
+          }`}
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </section>
   );
 };
 
 const AdminReorder = () => {
-  const [dataByPin, setDataByPin] = useState({}); // { pin: items[] }
-  const [dirtyPins, setDirtyPins] = useState(new Set()); // track คอลัมน์ที่มีการแก้
-  const [loading, setLoading] = useState(true);
+  const [dataByPin, setDataByPin] = useState({});
+  const [dirtyPins, setDirtyPins] = useState(new Set());
   const [savingPin, setSavingPin] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
-      // ดึงแบบ page ใหญ่เพื่อโหลดทั้งหมด (ปรับได้ตามปริมาณข้อมูล)
       const res = await api.get("/api/members", {
         params: { page: 1, limit: 1000, orderBy: "pin", order: "asc" },
       });
       const rows = res.data.data || [];
-      // group by pin
       const grouped = PIN_OPTIONS.reduce((acc, p) => ({ ...acc, [p]: [] }), {});
       rows.forEach((r) => {
         if (!grouped[r.pin]) grouped[r.pin] = [];
@@ -139,7 +148,7 @@ const AdminReorder = () => {
     load();
   }, []);
 
-  const onChangeOrder = (pin, newItems) => {
+  const handleReorder = (pin, newItems) => {
     setDataByPin((prev) => ({ ...prev, [pin]: newItems }));
     setDirtyPins((prev) => new Set([...prev, pin]));
   };
@@ -147,17 +156,16 @@ const AdminReorder = () => {
   const savePin = async (pin) => {
     const list = dataByPin[pin] || [];
     if (!list.length) return;
-
     setSavingPin(pin);
     try {
-      const payload = {
-        pin,
-        items: list.map((it) => ({ id: it._id, pinOrder: it.pinOrder ?? 0 })),
-      };
-      await api.put("/api/members/reorder/bulk", payload, {
-        headers: { "Content-Type": "application/json" },
-      });
-      // หลังบันทึก ล้าง dirty state ของ pin นี้
+      await api.put(
+        "/api/members/reorder/bulk",
+        {
+          pin,
+          items: list.map((it) => ({ id: it._id, pinOrder: it.pinOrder ?? 0 })),
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
       setDirtyPins((prev) => {
         const next = new Set(prev);
         next.delete(pin);
@@ -170,6 +178,7 @@ const AdminReorder = () => {
 
   const saveAll = async () => {
     for (const pin of Array.from(dirtyPins)) {
+      // eslint-disable-next-line no-await-in-loop
       await savePin(pin);
     }
   };
@@ -179,16 +188,16 @@ const AdminReorder = () => {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-6 bg-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Reorder by Pin</h1>
+      <main className="flex-1 bg-slate-50 p-6 ml-0 md:ml-64">
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-900">
+            Reorder by Pin (Masonry)
+          </h1>
           <button
             onClick={saveAll}
             disabled={!hasDirty}
-            className={`px-4 py-2 rounded text-white ${
-              hasDirty
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-gray-400 cursor-not-allowed"
+            className={`rounded-lg px-4 py-2 text-white ${
+              hasDirty ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-400"
             }`}
           >
             {hasDirty ? "Save All Changes" : "No Changes"}
@@ -196,44 +205,28 @@ const AdminReorder = () => {
         </div>
 
         {loading ? (
-          <div>กำลังโหลด...</div>
+          <div className="text-slate-500">กำลังโหลด...</div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          // ===== Masonry container: 1/2/3/4 columns พร้อมเว้นช่องเท่า ๆ กัน =====
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
             {PIN_OPTIONS.map((pin) => {
-              const items = (dataByPin[pin] || []).slice(); // clone
-              // ให้แน่ใจว่าเรียงตาม pinOrder ปัจจุบันก่อนแสดง
-              items.sort(
-                (a, b) =>
-                  (a.pinOrder ?? 0) - (b.pinOrder ?? 0) ||
-                  (a.memberName || "")
-                    .toString()
-                    .localeCompare((b.memberName || "").toString())
-              );
+              const items = (dataByPin[pin] || [])
+                .slice()
+                .sort(
+                  (a, b) =>
+                    (a.pinOrder ?? 0) - (b.pinOrder ?? 0) ||
+                    a.memberName.localeCompare(b.memberName)
+                );
               const dirty = dirtyPins.has(pin);
               return (
-                <div key={pin} className="relative">
-                  {dirty && (
-                    <div className="absolute right-2 top-2 text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700">
-                      Unsaved
-                    </div>
-                  )}
-                  <PinColumn
-                    pin={pin}
-                    items={items}
-                    onChangeOrder={onChangeOrder}
-                  />
-                  <div className="mt-2 flex justify-end">
-                    <button
-                      onClick={() => savePin(pin)}
-                      disabled={!dirty || savingPin === pin}
-                      className={`px-3 py-1 rounded text-white ${
-                        dirty ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400"
-                      } ${savingPin === pin ? "opacity-70" : ""}`}
-                    >
-                      {savingPin === pin ? "Saving..." : "Save This Pin"}
-                    </button>
-                  </div>
-                </div>
+                <PinCard
+                  key={pin}
+                  pin={pin}
+                  items={items}
+                  onReorder={handleReorder}
+                  onSave={savePin}
+                  saving={savingPin === pin}
+                />
               );
             })}
           </div>
