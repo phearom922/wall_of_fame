@@ -77,16 +77,15 @@ const Home = () => {
             </div>
 
             {/* Members Grid */}
-            <div className="flex flex-wrap justify-center sm:gap-4 md:gap-6">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               {loading ? (
-                // Skeleton Loaders
                 Array.from({ length: 10 }).map((_, i) => (
                   <div
                     key={i}
-                    className="group basis-1/2 sm:basis-1/3 lg:basis-1/4 xl:basis-1/5 max-w-[280px] w-full"
+                    className="w-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 max-w-[260px]"
                   >
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 h-full animate-pulse">
-                      <div className="bg-slate-200 rounded-xl w-full h-48 mb-4"></div>
+                      <div className="bg-slate-200 rounded-xl w-full h-40 mb-4"></div>
                       <div className="space-y-2">
                         <div className="bg-slate-200 rounded h-4 w-3/4"></div>
                         <div className="bg-slate-200 rounded h-3 w-1/2"></div>
@@ -96,8 +95,7 @@ const Home = () => {
                   </div>
                 ))
               ) : members.length === 0 ? (
-                // Empty State
-                <div className="w-full max-w-3xl text-center py-16">
+                <div className="w-full text-center py-16">
                   <div className="w-24 h-24 mx-auto mb-4 bg-slate-200 rounded-full flex items-center justify-center">
                     <svg
                       className="w-10 h-10 text-slate-400"
@@ -130,11 +128,9 @@ const Home = () => {
                 members.map((m, index) => (
                   <div
                     key={m._id}
-                    className="group basis-1/2 sm:basis-1/3 lg:basis-1/4 xl:basis-1/5 max-w-[280px] w-full
-                  opacity-0 translate-y-8 animate-[fadeInUp_0.5s_ease-out_forwards]"
-                    style={{
-                      animationDelay: `${index * 0.1}s`,
-                    }}
+                    className="w-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 max-w-[260px]
+                   opacity-0 translate-y-8 animate-[fadeInUp_0.5s_ease-out_forwards]"
+                    style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <PublicMemberCard member={m} />
                   </div>
@@ -145,7 +141,7 @@ const Home = () => {
         </div>
 
         {/* Enhanced Footer */}
-        <Footer  />
+        <Footer />
       </div>
     </>
   );
