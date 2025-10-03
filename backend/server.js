@@ -15,7 +15,7 @@ app.use(express.json());
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5174', // in case of Vite dev
-    'https://branchkh.vercel.app',
+    'https://walloffamekh.vercel.app',
 ];
 
 app.use(cors({
