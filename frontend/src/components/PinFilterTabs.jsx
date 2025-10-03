@@ -16,32 +16,43 @@ const PinFilterTabs = ({ value, onChange }) => {
   const tabs = ["All", ...pins.map((p) => p.name)];
 
   return (
-    <div className="w-full">
+    // ใช้ -mx-4 / px-4 เพื่อให้แถบเลื่อนไปชนขอบจอพอดี (หน้า Home มี padding)
+    <div className="relative -mx-4 px-4">
+      {/* แถบสกอร์ล – ซ่อน scrollbar, เปิด snap, ไม่ทำให้ body เกิด overflow-x */}
       <div
-        className="flex gap-2 pb-2 overflow-x-auto snap-x snap-mandatory scroll-px-4 [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex gap-2 overflow-x-auto snap-x snap-mandatory touch-pan-x
+                   [scrollbar-width:none] overscroll-x-contain"
         style={{ scrollbarWidth: "none" }}
       >
-        {/* ซ่อน scrollbar บน WebKit */}
-        <style>{`.hide-scrollbar::-webkit-scrollbar{display:none}`}</style>
-        {tabs.map((pin) => {
-          const active = value === pin;
-          return (
-            <button
-              key={pin}
-              onClick={() => onChange(pin)}
-              className={`hide-scrollbar whitespace-nowrap snap-center
-                          px-4 py-2 rounded-lg border font-semibold
-                          ${
-                            active
-                              ? "bg-orange-600 text-white border-orange-600"
-                              : "bg-white text-gray-700 hover:bg-gray-50 border-gray-200"
-                          }`}
-            >
-              {pin}
-            </button>
-          );
-        })}
+        {/* Hide scrollbar (WebKit) */}
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+        `}</style>
+
+        <div className="no-scrollbar inline-flex gap-2 py-2">
+          {tabs.map((pin) => {
+            const active = value === pin;
+            return (
+              <button
+                key={pin}
+                onClick={() => onChange(pin)}
+                className={`snap-center whitespace-nowrap px-4 py-2 rounded-lg border font-medium
+                  ${
+                    active
+                      ? "bg-orange-600 text-white border-orange-600"
+                      : "bg-white text-gray-700 hover:bg-gray-50 border-gray-200"
+                  }`}
+              >
+                {pin}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* gradient hint ซ้าย/ขวา */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-slate-50 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-50 to-transparent" />
     </div>
   );
 };

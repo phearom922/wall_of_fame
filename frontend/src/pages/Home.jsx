@@ -56,7 +56,7 @@ const Home = () => {
               <div className="inline-block mb-4">
                 <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-2"></div>
               </div>
-              <h1 className="ld:text-7xl md:text-6xl sm:text-5xl text-4xl font-bold bg-gradient-to-r from-orange-600 to-blue-600 bg-clip-text text-transparent mb-4">
+              <h1 className="lg:text-7xl md:text-6xl sm:text-5xl text-4xl font-bold bg-gradient-to-r from-orange-600 to-blue-600 bg-clip-text text-transparent mb-4">
                 Successmore Wall of Fame
               </h1>
               <p className="text-lg text-slate-600 max-w-2xl mx-auto">
@@ -64,22 +64,15 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Stats and Filter Section */}
-            <div className="flex mb-8 justify-center">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-                {/* Filter Label */}
-              </div>
-
-              {/* Tabs */}
-              <div className="mb-8">
-                <PinFilterTabs value={selectedPin} onChange={setSelectedPin} />
-              </div>
+            {/* Filter Section */}
+            <div className="mb-8">
+              <PinFilterTabs value={selectedPin} onChange={setSelectedPin} />
             </div>
 
             {/* Members Grid */}
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               {loading ? (
-                Array.from({ length: 10 }).map((_, i) => (
+                Array.from({ length: 8 }).map((_, i) => (
                   <div
                     key={i}
                     className="w-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 max-w-[260px]"
@@ -95,7 +88,7 @@ const Home = () => {
                   </div>
                 ))
               ) : members.length === 0 ? (
-                <div className="w-full text-center py-16">
+                <div className="w-full max-w-3xl text-center py-16">
                   <div className="w-24 h-24 mx-auto mb-4 bg-slate-200 rounded-full flex items-center justify-center">
                     <svg
                       className="w-10 h-10 text-slate-400"
@@ -124,12 +117,11 @@ const Home = () => {
                   <p className="text-slate-500">See you soon.</p>
                 </div>
               ) : (
-                // Members Grid
                 members.map((m, index) => (
                   <div
                     key={m._id}
                     className="w-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 max-w-[260px]
-                   opacity-0 translate-y-8 animate-[fadeInUp_0.5s_ease-out_forwards]"
+                               opacity-0 translate-y-8 animate-[fadeInUp_0.5s_ease-out_forwards]"
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <PublicMemberCard member={m} />
@@ -140,7 +132,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Enhanced Footer */}
+        {/* Footer */}
         <Footer />
       </div>
     </>
