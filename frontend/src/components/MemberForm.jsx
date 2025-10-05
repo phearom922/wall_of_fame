@@ -46,33 +46,71 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
     }
   };
 
+  const [error, setError] = useState(null);
+
   const submit = async (e) => {
     e.preventDefault();
+    setError(null);
 
     try {
+      // Validate required fields
+      if (!form.memberId?.trim()) {
+        setError({ field: "memberId", message: "Member ID is required" });
+        return;
+      }
+      if (!form.memberName?.trim()) {
+        setError({ field: "memberName", message: "Member name is required" });
+        return;
+      }
+      if (!form.startPin) {
+        setError({ field: "startPin", message: "Start date is required" });
+        return;
+      }
+      if (!form.endPin) {
+        setError({ field: "endPin", message: "End date is required" });
+        return;
+      }
+
       const fd = new FormData();
       fd.append("memberId", form.memberId.trim());
       fd.append("memberName", form.memberName.trim());
       fd.append("pin", form.pin);
-      // ส่งวันที่จาก <input type="date" /> จะได้ "YYYY-MM-DD"
-      fd.append("startPin", form.startPin); // e.g. "2025-09-30"
-      fd.append("endPin", form.endPin); // e.g. "2025-12-31"
+      fd.append("startPin", form.startPin);
+      fd.append("endPin", form.endPin);
       fd.append("pinOrder", String(form.pinOrder ?? 0));
       fd.append("enabled", String(!!form.enabled));
-      if (form.imageFile) fd.append("image", form.imageFile);
+
+      if (form.imageFile) {
+        // Validate file size (5MB)
+        if (form.imageFile.size > 5 * 1024 * 1024) {
+          setError({
+            field: "image",
+            message: "Image size must be less than 5MB",
+          });
+          return;
+        }
+        fd.append("image", form.imageFile);
+      }
 
       await api.post("/api/members", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 30000, // 30 seconds timeout
       });
 
-      // success — ปิด modal / reload list
+      if (onSubmit) {
+        onSubmit(); // Call success callback
+      }
     } catch (err) {
-      const msg = err?.response?.data?.message || "สร้างสมาชิกไม่สำเร็จ";
-      // แสดง error ให้ผู้ใช้เห็น เช่น setError(msg)
-      console.error("Create member failed:", msg);
+      const errorData = err?.response?.data;
+      setError({
+        field: errorData?.field || "",
+        message: errorData?.message || "Failed to create member",
+      });
+      console.error("Create member failed:", errorData?.message || err.message);
     }
   };
-
 
   return (
     <form onSubmit={submit} className="space-y-6">
@@ -88,15 +126,22 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
               name="memberId"
               value={form.memberId}
               onChange={handleChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               placeholder="e.g. 0921207"
               required
               disabled={mode === "edit"}
+              className={`w-full rounded-xl border ${
+                error?.field === "memberId"
+                  ? "border-red-500 ring-1 ring-red-500"
+                  : "border-slate-300"
+              } px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200`}
             />
             {mode === "edit" && (
               <p className="text-xs text-slate-500 mt-1">
                 Member ID cannot be changed
               </p>
+            )}
+            {error?.field === "memberId" && (
+              <p className="text-xs text-red-500 mt-1">{error.message}</p>
             )}
           </div>
 
