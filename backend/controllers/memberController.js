@@ -87,12 +87,88 @@ exports.getMemberById = async (req, res) => {
 };
 
 exports.createMember = async (req, res) => {
-    const member = new Member({
-        ...req.body,
-        imageUrl: req.file?.path || req.body.imageUrl || null,
-    });
-    await member.save();
-    res.status(201).json(member);
+    try {
+        // Validate required fields
+        const requiredFields = ['memberId', 'memberName', 'pin', 'startPin', 'endPin'];
+        for (const field of requiredFields) {
+            if (!req.body[field]) {
+                return res.status(400).json({
+                    message: `${field} is required`,
+                    field: field
+                });
+            }
+        }
+
+        // Validate dates
+        const startPin = new Date(req.body.startPin);
+        const endPin = new Date(req.body.endPin);
+
+        if (isNaN(startPin.getTime())) {
+            return res.status(400).json({
+                message: 'startPin must be a valid date',
+                field: 'startPin'
+            });
+        }
+
+        if (isNaN(endPin.getTime())) {
+            return res.status(400).json({
+                message: 'endPin must be a valid date',
+                field: 'endPin'
+            });
+        }
+
+        // Check if memberId already exists
+        const existingMember = await Member.findOne({ memberId: req.body.memberId });
+        if (existingMember) {
+            return res.status(400).json({
+                message: 'Member ID already exists',
+                field: 'memberId'
+            });
+        }
+
+        // Create member with validated data
+        const memberData = {
+            ...req.body,
+            startPin,
+            endPin,
+            imageUrl: req.file?.path || req.body.imageUrl || null,
+            pinOrder: req.body.pinOrder || 0,
+            enabled: req.body.enabled !== false // default to true unless explicitly set to false
+        };
+
+        const member = new Member(memberData);
+        await member.save();
+
+        // Remove sensitive or unnecessary fields if any
+        const memberResponse = member.toObject();
+
+        res.status(201).json({
+            message: 'Member created successfully',
+            data: memberResponse
+        });
+
+    } catch (error) {
+        console.error('Create member error:', error);
+
+        // Handle mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const errors = Object.keys(error.errors).reduce((acc, key) => {
+                acc[key] = error.errors[key].message;
+                return acc;
+            }, {});
+
+            return res.status(400).json({
+                message: 'Validation error',
+                errors
+            });
+        }
+
+        // Handle other errors
+        res.status(500).json({
+            message: 'Failed to create member',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
 };
 
 // controllers/memberController.js (เฉพาะฟังก์ชันนี้)
