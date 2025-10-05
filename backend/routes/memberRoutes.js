@@ -11,10 +11,13 @@ router.get('/:id', controller.getMemberById);
 router.post('/', verifyToken, upload.single('image'), controller.createMember);
 router.put('/:id', verifyToken, (req, res, next) => {
     upload.single('image')(req, res, function (err) {
-        if (err) return res.status(400).json({ message: err.message || 'Upload failed' });
+        if (err) {
+            return res.status(400).json({ message: err.message || 'Upload failed' });
+        }
         controller.updateMember(req, res).catch(next);
     });
 });
+
 
 router.delete('/:id', verifyToken, controller.deleteMember);
 

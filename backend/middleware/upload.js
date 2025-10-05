@@ -7,9 +7,6 @@ const storage = new CloudinaryStorage({
     params: { folder: 'members', allowed_formats: ['jpg', 'jpeg', 'png', 'webp'] }
 });
 
-const upload = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
-});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 module.exports = upload;
