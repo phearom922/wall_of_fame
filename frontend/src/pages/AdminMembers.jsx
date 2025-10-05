@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import api from "../api/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CreateMemberModal from "../components/CreateMemberModal";
 import { PIN_OPTIONS } from "../constants/pins";
+import SuccessAlert from "../components/SuccessAlert";
 
 const AdminMembers = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check for success message in navigation state
+    if (location.state?.success) {
+      setSuccessMessage(location.state.message || "Operation successful");
+      // Clear the navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location]);
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +37,7 @@ const AdminMembers = () => {
   const [openCreate, setOpenCreate] = useState(false);
   const [errCreate, setErrCreate] = useState("");
   const [localOrders, setLocalOrders] = useState({});
+  const [successMessage, setSuccessMessage] = useState("");
 
   const statusBadge = (s) => (
     <span

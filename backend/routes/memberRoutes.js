@@ -13,38 +13,11 @@ router.get('/', controller.getAllMembers);
 router.get('/stats', controller.getStats);
 router.get('/:id', controller.getMemberById);
 
-router.post('/', verifyToken, async (req, res, next) => {
-    try {
-        // 1. Check for duplicate memberId first
-        const { memberId } = req.body;
-        if (!memberId) {
-            return res.status(400).json({
-                message: 'Member ID is required',
-                field: 'memberId'
-            });
-        }
-
-        const existingMember = await Member.findOne({ memberId: memberId.trim() });
-        if (existingMember) {
-            return res.status(409).json({
-                message: 'Member ID already exists',
-                field: 'memberId'
-            });
-        }
-
-        // 2. Then handle file upload
-        upload.single('image')(req, res, function (err) {
-            if (err) {
-                return res.status(400).json({
-                    message: err.message || 'Upload failed',
-                    field: 'image'
-                });
-            }
-            controller.createMember(req, res).catch(next);
-        });
-    } catch (error) {
-        next(error);
-    }
+router.post('/', verifyToken, (req, res, next) => {
+    upload.single('image')(req, res, function (err) {
+        if (err) return res.status(400).json({ message: err.message || 'Upload failed' });
+        controller.createMember(req, res).catch(next);
+    });
 });
 
 

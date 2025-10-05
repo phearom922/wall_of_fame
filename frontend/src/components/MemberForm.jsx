@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/client";
 
 const PIN_OPTIONS = [
@@ -16,7 +17,9 @@ const PIN_OPTIONS = [
   "Bronze",
 ];
 
-const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
+const MemberForm = ({ initialValues, mode = "create", onSuccess }) => {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     memberId: initialValues?.memberId || "",
     memberName: initialValues?.memberName || "",
@@ -26,53 +29,65 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
       : "",
     endPin: initialValues?.endPin ? initialValues.endPin.slice(0, 10) : "",
     imageFile: null,
+    enabled: initialValues?.enabled ?? true,
+    pinOrder: initialValues?.pinOrder ?? 0,
   });
-
   const [preview, setPreview] = useState(initialValues?.imageUrl || "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null); // { field?, message }
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value, files, type, checked } = e.target;
     if (name === "image") {
-      const file = files?.[0];
-      setForm((prev) => ({ ...prev, imageFile: file || null }));
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreview(url);
-      } else {
-        setPreview(initialValues?.imageUrl || "");
-      }
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      const file = files?.[0] || null;
+      setForm((prev) => ({ ...prev, imageFile: file }));
+      setPreview(
+        file ? URL.createObjectURL(file) : initialValues?.imageUrl || ""
+      );
+      return;
     }
+    if (type === "checkbox") {
+      setForm((prev) => ({ ...prev, [name]: !!checked }));
+      return;
+    }
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
-
-  const [error, setError] = useState(null);
 
   const submit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     setError(null);
 
+    // Validate required fields first
+    if (mode === "create" && !form.memberId?.trim()) {
+      setError({ field: "memberId", message: "Member ID is required" });
+      setSubmitting(false);
+      return;
+    }
+    if (!form.memberName?.trim()) {
+      setError({ field: "memberName", message: "Member name is required" });
+      setSubmitting(false);
+      return;
+    }
+    if (!form.startPin) {
+      setError({ field: "startPin", message: "Start date is required" });
+      setSubmitting(false);
+      return;
+    }
+    if (!form.endPin) {
+      setError({ field: "endPin", message: "End date is required" });
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      // Validate required fields
-      if (!form.memberId?.trim()) {
-        setError({ field: "memberId", message: "Member ID is required" });
-        return;
-      }
-      if (!form.memberName?.trim()) {
-        setError({ field: "memberName", message: "Member name is required" });
-        return;
-      }
-      if (!form.startPin) {
-        setError({ field: "startPin", message: "Start date is required" });
-        return;
-      }
-      if (!form.endPin) {
-        setError({ field: "endPin", message: "End date is required" });
-        return;
+      const fd = new FormData();
+
+      if (mode === "create") {
+        fd.append("memberId", form.memberId.trim());
       }
 
-      const fd = new FormData();
-      fd.append("memberId", form.memberId.trim());
+      // common fields
       fd.append("memberName", form.memberName.trim());
       fd.append("pin", form.pin);
       fd.append("startPin", form.startPin);
@@ -87,35 +102,60 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
             field: "image",
             message: "Image size must be less than 5MB",
           });
+          setSubmitting(false);
           return;
         }
         fd.append("image", form.imageFile);
       }
 
-      await api.post("/api/members", fd, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 30000, // 30 seconds timeout
-      });
+      if (mode === "create") {
+        const response = await api.post("/api/members", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
-      if (onSubmit) {
-        onSubmit(); // Call success callback
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess(response.data);
+        }
+      } else {
+        const id = initialValues?._id;
+        await api.put(`/api/members/${id}`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        // อัปเดตเสร็จอยู่หน้าเดิม (edit) หรือจะพากลับรายชื่อก็ได้:
+        navigate("/admin/members");
       }
     } catch (err) {
-      const errorData = err?.response?.data;
-      setError({
-        field: errorData?.field || "",
-        message: errorData?.message || "Failed to create member",
-      });
-      console.error("Create member failed:", errorData?.message || err.message);
+      const resp = err?.response?.data;
+      // จัดการเคสซ้ำ memberId โดยเฉพาะ
+      if (
+        resp?.message?.toLowerCase().includes("memberid") &&
+        resp?.message?.includes("exists")
+      ) {
+        setError({ field: "memberId", message: "Member ID นี้ถูกใช้งานแล้ว" });
+      } else {
+        setError({ message: resp?.message || "ดำเนินการไม่สำเร็จ" });
+      }
+      console.error(
+        mode === "create" ? "Create member failed:" : "Update member failed:",
+        resp || err.message
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={submit} className="space-y-6">
+      {/* Banner error */}
+      {error?.message && (
+        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+          {error.message}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Basic Info */}
+        {/* Left */}
         <div className="space-y-6">
           {/* Member ID */}
           <div>
@@ -127,13 +167,14 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
               value={form.memberId}
               onChange={handleChange}
               placeholder="e.g. 0921207"
-              required
+              required={mode === "create"}
               disabled={mode === "edit"}
-              className={`w-full rounded-xl border ${
-                error?.field === "memberId"
-                  ? "border-red-500 ring-1 ring-red-500"
-                  : "border-slate-300"
-              } px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200`}
+              className={`w-full rounded-xl border px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-blue-500
+                ${
+                  error?.field === "memberId"
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-slate-300"
+                }`}
             />
             {mode === "edit" && (
               <p className="text-xs text-slate-500 mt-1">
@@ -154,13 +195,13 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
               name="memberName"
               value={form.memberName}
               onChange={handleChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter full name"
               required
             />
           </div>
 
-          {/* Pin Selection */}
+          {/* Pin */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Pin Category *
@@ -169,7 +210,7 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
               name="pin"
               value={form.pin}
               onChange={handleChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
               {PIN_OPTIONS.map((p) => (
                 <option key={p} value={p}>
@@ -178,11 +219,22 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
               ))}
             </select>
           </div>
+
+          {/* Enable toggle (ถ้าต้องการให้แก้ในฟอร์ม) */}
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="enabled"
+              checked={!!form.enabled}
+              onChange={handleChange}
+            />
+            <span>Enable this member</span>
+          </label>
         </div>
 
-        {/* Right Column - Dates & Image */}
+        {/* Right */}
         <div className="space-y-6">
-          {/* Date Range */}
+          {/* Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -193,7 +245,7 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
                 name="startPin"
                 value={form.startPin}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
@@ -207,7 +259,7 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
                 name="endPin"
                 value={form.endPin}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
@@ -218,9 +270,7 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Profile Image
             </label>
-
-            {/* File Input with Custom Styling */}
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition-all duration-200 bg-slate-50/50">
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 bg-slate-50/50">
               <input
                 type="file"
                 name="image"
@@ -254,7 +304,6 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
               </label>
             </div>
 
-            {/* Image Preview */}
             {(preview || (mode === "edit" && initialValues?.imageUrl)) && (
               <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -278,18 +327,17 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
         </div>
       </div>
 
-      {/* Form Actions */}
+      {/* Actions */}
       <div className="flex items-center justify-between pt-6 border-t border-slate-200">
         <div className="text-sm text-slate-500">
           Fields marked with * are required
         </div>
-
         <button
           type="submit"
-          disabled={loading}
+          disabled={submitting}
           className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-sm hover:shadow-md"
         >
-          {loading ? (
+          {submitting ? (
             <>
               <svg
                 className="w-4 h-4 animate-spin"
@@ -304,7 +352,7 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              Saving...
+              {mode === "edit" ? "Updating..." : "Creating..."}
             </>
           ) : mode === "edit" ? (
             <>
@@ -342,30 +390,6 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
             </>
           )}
         </button>
-      </div>
-
-      {/* Quick Help */}
-      <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-        <div className="flex items-start gap-3">
-          <svg
-            className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div className="text-sm text-blue-700">
-            <strong>Pro tip:</strong> Ensure the member ID is unique and the
-            date range accurately reflects the membership period. High-quality
-            images will display better on the public wall.
-          </div>
-        </div>
       </div>
     </form>
   );

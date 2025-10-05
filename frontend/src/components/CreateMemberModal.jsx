@@ -1,8 +1,26 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import MemberForm from "./MemberForm";
 
-const CreateMemberModal = ({ open, onClose, onSubmit, loading, error }) => {
+const CreateMemberModal = ({ open, onClose, error }) => {
+  const navigate = useNavigate();
+
   if (!open) return null;
+
+  const handleSuccess = (data) => {
+    // Close the modal
+    onClose();
+
+    // Navigate with success message
+    navigate("/admin/members", {
+      replace: true,
+      state: {
+        success: true,
+        message: "Member created successfully",
+      },
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded shadow-lg w-full max-w-2xl p-4">
@@ -20,7 +38,7 @@ const CreateMemberModal = ({ open, onClose, onSubmit, loading, error }) => {
             {error}
           </div>
         )}
-        <MemberForm onSubmit={onSubmit} loading={loading} mode="create" />
+        <MemberForm mode="create" onSuccess={handleSuccess} />
       </div>
     </div>
   );
