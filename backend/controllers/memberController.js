@@ -6,6 +6,18 @@ const { buildPinRankMap } = require('./pinController'); // 🔥 ใช้ map �
 const now = () => new Date();
 const getStatus = (endDate) => new Date(endDate) > now() ? 'Active' : 'Expired';
 
+// helper
+const toDateOrBad = (v, field) => {
+    if (!v) return undefined;
+    const d = new Date(v);
+    if (isNaN(d.getTime())) {
+        const err = new Error(`${field} is invalid date`);
+        err.status = 400;
+        throw err;
+    }
+    return d;
+};
+
 exports.getAllMembers = async (req, res) => {
     const {
         status,
@@ -87,12 +99,40 @@ exports.getMemberById = async (req, res) => {
 };
 
 exports.createMember = async (req, res) => {
-    const member = new Member({
-        ...req.body,
-        imageUrl: req.file?.path || req.body.imageUrl || null,
-    });
-    await member.save();
-    res.status(201).json(member);
+    try {
+        // รับได้จาก multipart/form-data (multer) เสมอ
+        const { memberId, memberName, pin, startPin, endPin, pinOrder, enabled } = req.body;
+
+        // validate ขั้นพื้นฐาน
+        if (!memberId || !memberName || !pin || !startPin || !endPin) {
+            return res.status(400).json({ message: 'memberId, memberName, pin, startPin, endPin are required' });
+        }
+
+        // แปลงชนิด
+        const doc = {
+            memberId: String(memberId).trim(),
+            memberName: String(memberName).trim(),
+            pin: String(pin).trim(),
+            startPin: toDateOrBad(startPin, 'startPin'),
+            endPin: toDateOrBad(endPin, 'endPin'),
+            pinOrder: Number(pinOrder ?? 0) || 0,
+            enabled: String(enabled ?? 'true') === 'true',
+        };
+
+        // แนบรูปถ้ามี upload
+        if (req.file?.path) doc.imageUrl = req.file.path;
+
+        const created = await Member.create(doc);
+        return res.status(201).json(created);
+    } catch (err) {
+        // duplicate key (memberId ซ้ำ)
+        if (err?.code === 11000) {
+            return res.status(409).json({ message: 'memberId already exists' });
+        }
+        const status = err.status || 500;
+        console.error('createMember error:', err);
+        return res.status(status).json({ message: err.message || 'Create failed' });
+    }
 };
 
 // controllers/memberController.js (เฉพาะฟังก์ชันนี้)

@@ -4,11 +4,23 @@ const verifyToken = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 const controller = require('../controllers/memberController');
 
+
+
+
+
+
 router.get('/', controller.getAllMembers);
 router.get('/stats', controller.getStats);
 router.get('/:id', controller.getMemberById);
 
-router.post('/', verifyToken, upload.single('image'), controller.createMember);
+router.post('/', verifyToken, (req, res, next) => {
+    upload.single('image')(req, res, function (err) {
+        if (err) return res.status(400).json({ message: err.message || 'Upload failed' });
+        controller.createMember(req, res).catch(next);
+    });
+});
+
+
 router.put('/:id', verifyToken, (req, res, next) => {
     upload.single('image')(req, res, function (err) {
         if (err) {

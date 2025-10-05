@@ -4,9 +4,11 @@ const cloudinary = require('../utils/cloudinary');
 
 const storage = new CloudinaryStorage({
     cloudinary,
-    params: { folder: 'members', allowed_formats: ['jpg', 'jpeg', 'png', 'webp'] }
+    params: {
+        folder: 'members',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ quality: 'auto' }],
+    },
 });
 
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
-
-module.exports = upload;
+module.exports = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB

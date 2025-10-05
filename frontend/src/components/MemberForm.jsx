@@ -51,45 +51,28 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
 
     try {
       const fd = new FormData();
-
-      // Basic member information
+      fd.append("memberId", form.memberId.trim());
       fd.append("memberName", form.memberName.trim());
       fd.append("pin", form.pin);
+      // ส่งวันที่จาก <input type="date" /> จะได้ "YYYY-MM-DD"
+      fd.append("startPin", form.startPin); // e.g. "2025-09-30"
+      fd.append("endPin", form.endPin); // e.g. "2025-12-31"
       fd.append("pinOrder", String(form.pinOrder ?? 0));
-
-      // Handle dates
-      if (form.startPin) {
-        fd.append(
-          "startPin",
-          new Date(form.startPin).toISOString().split("T")[0]
-        );
-      }
-      if (form.endPin) {
-        fd.append("endPin", new Date(form.endPin).toISOString().split("T")[0]);
-      }
-
-      // Handle boolean values
       fd.append("enabled", String(!!form.enabled));
+      if (form.imageFile) fd.append("image", form.imageFile);
 
-      // Handle image file separately to prevent empty file submissions
-      if (form.imageFile instanceof File) {
-        // Validate file size (max 5MB)
-        if (form.imageFile.size > 5 * 1024 * 1024) {
-          throw new Error("Image file size must be less than 5MB");
-        }
-        // Validate file type
-        if (!form.imageFile.type.startsWith("image/")) {
-          throw new Error("File must be an image");
-        }
-        fd.append("image", form.imageFile);
-      }
+      await api.post("/api/members", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      await onSubmit(fd);
-    } catch (error) {
-      console.error("Form submission error:", error);
-      throw error; // Re-throw to let parent component handle the error
+      // success — ปิด modal / reload list
+    } catch (err) {
+      const msg = err?.response?.data?.message || "สร้างสมาชิกไม่สำเร็จ";
+      // แสดง error ให้ผู้ใช้เห็น เช่น setError(msg)
+      console.error("Create member failed:", msg);
     }
   };
+
 
   return (
     <form onSubmit={submit} className="space-y-6">
