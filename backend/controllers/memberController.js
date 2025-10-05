@@ -98,6 +98,11 @@ exports.createMember = async (req, res) => {
 // controllers/memberController.js (เฉพาะฟังก์ชันนี้)
 exports.updateMember = async (req, res) => {
     try {
+        // Validate request
+        if (!req.params.id) {
+            return res.status(400).json({ message: 'Member ID is required' });
+        }
+
         // ✅ อนุญาตแก้เฉพาะฟิลด์เหล่านี้เท่านั้น
         const ALLOWED = ['memberName', 'pin', 'pinOrder', 'startPin', 'endPin', 'enabled', 'imageUrl'];
 
