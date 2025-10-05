@@ -9,13 +9,16 @@ import SuccessAlert from "../components/SuccessAlert";
 const AdminMembers = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     // Check for success message in navigation state
     if (location.state?.success) {
       setSuccessMessage(location.state.message || "Operation successful");
-      // Clear the navigation state
-      navigate(location.pathname, { replace: true, state: {} });
+      // Clear the navigation state after a brief delay
+      setTimeout(() => {
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 100);
     }
   }, [location]);
 
@@ -37,7 +40,6 @@ const AdminMembers = () => {
   const [openCreate, setOpenCreate] = useState(false);
   const [errCreate, setErrCreate] = useState("");
   const [localOrders, setLocalOrders] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
 
   const statusBadge = (s) => (
     <span
