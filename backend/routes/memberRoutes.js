@@ -9,7 +9,13 @@ router.get('/stats', controller.getStats);
 router.get('/:id', controller.getMemberById);
 
 router.post('/', verifyToken, upload.single('image'), controller.createMember);
-router.put('/:id', verifyToken, upload.single('image'), controller.updateMember);
+router.put('/:id', verifyToken, (req, res, next) => {
+    upload.single('image')(req, res, function (err) {
+        if (err) return res.status(400).json({ message: err.message || 'Upload failed' });
+        controller.updateMember(req, res).catch(next);
+    });
+});
+
 router.delete('/:id', verifyToken, controller.deleteMember);
 
 // 🔥 Bulk reorder within a pin

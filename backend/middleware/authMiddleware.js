@@ -9,8 +9,10 @@ function verifyToken(req, res, next) {
         req.admin = verified;
         next();
     } catch (err) {
-        res.status(400).json({ message: 'Invalid Token' });
+        console.error('updateMember error:', err);
+        return res.status(500).json({ message: 'Update failed', error: err.message });
     }
+
 }
 
 module.exports = verifyToken;
