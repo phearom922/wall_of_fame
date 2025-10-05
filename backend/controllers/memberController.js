@@ -95,13 +95,52 @@ exports.createMember = async (req, res) => {
     res.status(201).json(member);
 };
 
+// controllers/memberController.js (เฉพาะฟังก์ชันนี้)
 exports.updateMember = async (req, res) => {
-    const update = { ...req.body };
-    if (req.file?.path) update.imageUrl = req.file.path;
-    const member = await Member.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!member) return res.status(404).json({ message: 'Not found' });
-    res.json(member);
+    try {
+        // ✅ อนุญาตแก้เฉพาะฟิลด์เหล่านี้เท่านั้น
+        const ALLOWED = ['memberName', 'pin', 'pinOrder', 'startPin', 'endPin', 'enabled', 'imageUrl'];
+
+        const body = req.body || {};
+        const update = {};
+
+        for (const k of ALLOWED) {
+            if (body[k] !== undefined) update[k] = body[k];
+        }
+
+        // ✅ Coerce ชนิดข้อมูลให้ถูกต้อง
+        if (update.startPin) {
+            const d = new Date(update.startPin);
+            if (isNaN(d.getTime())) return res.status(400).json({ message: 'startPin is invalid date' });
+            update.startPin = d;
+        }
+        if (update.endPin) {
+            const d = new Date(update.endPin);
+            if (isNaN(d.getTime())) return res.status(400).json({ message: 'endPin is invalid date' });
+            update.endPin = d;
+        }
+        if (update.pinOrder !== undefined) update.pinOrder = Number(update.pinOrder) || 0;
+        if (update.enabled !== undefined) update.enabled = String(update.enabled) === 'true' || update.enabled === true;
+
+        // ✅ ถ้ามีอัพไฟล์ใหม่ (Cloudinary via multer), ใช้ไฟล์ใหม่นี้
+        if (req.file?.path) update.imageUrl = req.file.path;
+
+        // ❌ ไม่ให้แก้ memberId
+        if ('memberId' in update) delete update.memberId;
+
+        const member = await Member.findByIdAndUpdate(req.params.id, update, {
+            new: true,
+            runValidators: true,
+        });
+        if (!member) return res.status(404).json({ message: 'Member not found' });
+
+        res.json(member);
+    } catch (err) {
+        console.error('updateMember error:', err);
+        res.status(500).json({ message: 'Update failed', error: err.message });
+    }
 };
+
 
 exports.deleteMember = async (req, res) => {
     await Member.findByIdAndDelete(req.params.id);

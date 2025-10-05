@@ -45,18 +45,25 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
     }
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+
     const fd = new FormData();
-    fd.append("memberId", form.memberId);
+    // อย่า append memberId (เราไม่อนุญาตให้แก้)
     fd.append("memberName", form.memberName);
     fd.append("pin", form.pin);
-    fd.append("startPin", form.startPin);
-    fd.append("endPin", form.endPin);
-    if (form.imageFile) {
-      fd.append("image", form.imageFile);
-    }
-    onSubmit(fd);
+    fd.append("pinOrder", String(form.pinOrder ?? 0));
+    // ✅ ส่งวันที่เป็นรูปแบบ ISO yyyy-mm-dd (จาก <input type="date" /> จะได้รูปนี้)
+    fd.append("startPin", form.startPin); // e.g. "2025-09-30"
+    fd.append("endPin", form.endPin); // e.g. "2025-12-31"
+    fd.append("enabled", String(!!form.enabled));
+    if (form.imageFile) fd.append("image", form.imageFile); // มีไฟล์ค่อยใส่
+
+    await api.put(`/api/members/${id}`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    // ... success handling ...
   };
 
   return (
