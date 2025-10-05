@@ -49,18 +49,46 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
   const submit = async (e) => {
     e.preventDefault();
 
-    const fd = new FormData();
-    // อย่า append memberId (เราไม่อนุญาตให้แก้)
-    fd.append("memberName", form.memberName);
-    fd.append("pin", form.pin);
-    fd.append("pinOrder", String(form.pinOrder ?? 0));
-    // ✅ ส่งวันที่เป็นรูปแบบ ISO yyyy-mm-dd (จาก <input type="date" /> จะได้รูปนี้)
-    fd.append("startPin", form.startPin); // e.g. "2025-09-30"
-    fd.append("endPin", form.endPin); // e.g. "2025-12-31"
-    fd.append("enabled", String(!!form.enabled));
-    if (form.imageFile) fd.append("image", form.imageFile); // มีไฟล์ค่อยใส่
+    try {
+      const fd = new FormData();
 
-    await onSubmit(fd);
+      // Basic member information
+      fd.append("memberName", form.memberName.trim());
+      fd.append("pin", form.pin);
+      fd.append("pinOrder", String(form.pinOrder ?? 0));
+
+      // Handle dates
+      if (form.startPin) {
+        fd.append(
+          "startPin",
+          new Date(form.startPin).toISOString().split("T")[0]
+        );
+      }
+      if (form.endPin) {
+        fd.append("endPin", new Date(form.endPin).toISOString().split("T")[0]);
+      }
+
+      // Handle boolean values
+      fd.append("enabled", String(!!form.enabled));
+
+      // Handle image file separately to prevent empty file submissions
+      if (form.imageFile instanceof File) {
+        // Validate file size (max 5MB)
+        if (form.imageFile.size > 5 * 1024 * 1024) {
+          throw new Error("Image file size must be less than 5MB");
+        }
+        // Validate file type
+        if (!form.imageFile.type.startsWith("image/")) {
+          throw new Error("File must be an image");
+        }
+        fd.append("image", form.imageFile);
+      }
+
+      await onSubmit(fd);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      throw error; // Re-throw to let parent component handle the error
+    }
   };
 
   return (
