@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import api from "../api/client";
 
 const PIN_OPTIONS = [
   "Crown Diamond",
@@ -59,11 +60,7 @@ const MemberForm = ({ initialValues, onSubmit, loading, mode = "create" }) => {
     fd.append("enabled", String(!!form.enabled));
     if (form.imageFile) fd.append("image", form.imageFile); // มีไฟล์ค่อยใส่
 
-    await api.put(`/api/members/${id}`, fd, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    // ... success handling ...
+    await onSubmit(fd);
   };
 
   return (
