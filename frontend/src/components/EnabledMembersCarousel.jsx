@@ -53,7 +53,7 @@ const EnabledMembersCarousel = () => {
           spaceBetween={24}
           grabCursor
           autoplay={{ delay: 0, disableOnInteraction: false }}
-          speed={9000} // ปรับความเร็วเลื่อน
+          speed={5000} // ปรับความเร็วเลื่อน
           loop
           className="!overflow-hidden px-6"
         >
