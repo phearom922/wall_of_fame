@@ -19,6 +19,11 @@ html{
   background: #f56505;
   border-radius: 100vh;
 }
+
+.swiper {
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

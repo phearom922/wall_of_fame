@@ -3,6 +3,7 @@ import api from "../api/client";
 import { useParams, Link } from "react-router-dom";
 import usePinMap from "../hooks/usePinMap";
 import Footer from "../components/Footer";
+import EnabledMembersCarousel from "../components/EnabledMembersCarousel";
 
 const MemberDetail = () => {
   const { id } = useParams();
@@ -118,7 +119,7 @@ const MemberDetail = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 px-4 py-6 md:p-6 flex">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 px-4 py-6 md:p-6 flex flex-col">
         <div className="mx-auto w-full max-w-4xl">
           {/* Back Button */}
           <Link
@@ -145,7 +146,7 @@ const MemberDetail = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:shadow-md">
             <div className="flex flex-col lg:flex-row">
               {/* Image Section */}
-              <div className="lg:w-2/5 h-[600px] md:h-[400px] lg:h-[500px] ">
+              <div className="lg:w-2/5 h-[600px] md:h-[400px] lg:h-[450px] ">
                 {member.imageUrl ? (
                   <img
                     src={member.imageUrl}
@@ -334,7 +335,9 @@ const MemberDetail = () => {
             </div>
           </div>
         </div>
+        <EnabledMembersCarousel />
       </div>
+
       <Footer />
     </div>
   );
